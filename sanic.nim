@@ -12,7 +12,7 @@ var on = true
 echo "Loading database ..."
 for str in readFile("db.txt").splitLines:
   var parts = str.split(',')
-  db.add((word: parts[0], count: parts[1].parseInt))
+  if parts.len == 2: db.add((word: parts[0], count: parts[1].parseInt))
 echo "Complete. Loaded ", db.len, " words"
 proc complete(frag:string, i: int): string = 
   var counter = 0
@@ -27,8 +27,8 @@ proc writeString(input: string) =
     keybd_event(VkKeyScan(c.BYTE).BYTE, 0x9e.BYTE, KEYEVENTF_KEYUP, 0)
 proc backspace(num: int) =
   for i in 0..<num:
-    keybd_event(VK_BACK, 0x9e.BYTE, 0, 0);
-    keybd_event(VK_BACK, 0x9e.BYTE, KEYEVENTF_KEYUP, 0);
+    keybd_event(VK_BACK, 0x9e.BYTE, 0, 0)
+    keybd_event(VK_BACK, 0x9e.BYTE, KEYEVENTF_KEYUP, 0)
 proc reset() =
   frag = ""
   tabs = 0
@@ -39,7 +39,17 @@ proc main() =
     for i in 8..190:
       if GetAsyncKeyState(cint(i)) == -32767:
         if VK_SPACE == i or VK_RETURN == i: 
-          if not lastString.isNilOrEmpty: echo frag, lastString
+          if not lastString.isNilOrEmpty: 
+            var w = frag & lastString
+            for i, entry in db:
+              if w == entry.word:
+                echo i
+                db.delete(i)
+                db.insert((word: entry.word, count: entry.count + 1), i)
+                var s = ""
+                for str in db:
+                  s &= str.word & "," & $(str.count) & "\n"
+                writeFile("db.txt", s)
           reset()
         elif VK_BACK == i: frag.delete(frag.len, frag.len)
         elif chr(i) in Letters: frag = frag & toLowerAscii($chr(i))
