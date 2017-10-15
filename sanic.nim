@@ -1,20 +1,25 @@
 import os 
 import winim
 import strutils
+type Word = tuple
+  word: string
+  count: int
 var frag = ""
 var lastString = ""
-var db = newSeq[string](0)
+var db = newSeq[Word](0)
 var tabs = 0
 var on = true
-for str in readFile("db.txt").split:
-  if str.len > 3:
-    db.add(str)
+echo "Loading database ..."
+for str in readFile("db.txt").splitLines:
+  var parts = str.split(',')
+  db.add((word: parts[0], count: parts[1].parseInt))
+echo "Complete. Loaded ", db.len, " words"
 proc complete(frag:string, i: int): string = 
   var counter = 0
   for str in db:
-    if str.startsWith(frag):
+    if str.word.startsWith(frag):
       if counter == i:
-        return str.replace(frag, "")
+        return str.word.replace(frag, "")
       counter += 1
 proc writeString(input: string) = 
   for c in input:
@@ -33,7 +38,9 @@ proc main() =
     Sleep(50)
     for i in 8..190:
       if GetAsyncKeyState(cint(i)) == -32767:
-        if VK_SPACE == i or VK_RETURN == i: reset()
+        if VK_SPACE == i or VK_RETURN == i: 
+          if not lastString.isNilOrEmpty: echo frag, lastString
+          reset()
         elif VK_BACK == i: frag.delete(frag.len, frag.len)
         elif chr(i) in Letters: frag = frag & toLowerAscii($chr(i))
         var delFrag = false
@@ -50,7 +57,6 @@ proc main() =
           backspace(frag.len)
           reset()
         if VK_TAB == i and on:
-          echo lastString, frag
           backspace(lastString.len + 1)
           lastString = complete(frag.strip, tabs)
           writeString(lastString)
